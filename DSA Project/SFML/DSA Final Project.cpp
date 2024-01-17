@@ -12,6 +12,8 @@ enum NodeType {
     PATH
 };
 
+
+//Node Class
 class Node {
 public:
     int x;
@@ -25,7 +27,7 @@ public:
     Node(int X, int Y, NodeType Type)
     {
         x = X;
-        y = X;
+        y = Y;
         type = Type;
         previous = nullptr;
         distance = numeric_limits<int>::max();
@@ -34,11 +36,16 @@ public:
 
 
 class Queue {
+private:
+    vector<Node*> elements;
+
 public:
+    // The Enqueue function adds elements at the end of queue.
     void enqueue(Node* value) {
         elements.push_back(value);
     }
 
+    // The Dequeue function checks if the queue is empty or not, if not then delete the first element.
     void dequeue() {
         if (!empty()) {
             elements.erase(elements.begin());
@@ -49,7 +56,7 @@ public:
         if (!empty()) {
             return elements[0];
         }
-        // Return nullptr or throw an exception for an empty queue
+        // Return nullptr if queue is empty.
         return nullptr;
     }
 
@@ -57,12 +64,10 @@ public:
         return elements.empty();
     }
 
-    size_t size() const {
+    int size() const {
         return elements.size();
     }
 
-private:
-    vector<Node*> elements;
 };
 
 Font font;
@@ -80,7 +85,7 @@ public:
         shape.setOutlineColor(Color::Black);
         shape.setOutlineThickness(5);
 
-        text.setFont(font);  // Assuming you have a global font defined
+        text.setFont(font);
         text.setString(buttonText);
         text.setCharacterSize(32);
         text.setFillColor(Color::Black);
@@ -107,56 +112,85 @@ public:
     }
 };
 
+//Function to update selected button.
+void updateButtonSelection(float mouseX, float mouseY, Button& button) {
+    button.setSelected(button.isClicked(mouseX, mouseY));
+}
+
 const int gridSizeX = 32;
 const int gridSizeY = 22;
 const int windowWidth = 1366;
 const int windowHeight = 768;
 
 
-
+// Creating a Vector for Graph with initial values 0 and type EMPTY
 vector<vector<Node>> graph(gridSizeX, vector<Node>(gridSizeY, Node(0, 0, EMPTY)));
 
 Node* startNode = nullptr;
 Node* endNode = nullptr;
 
+
+// Function to clear all distances
 void clearDistances() {
-    for (auto& row : graph) {
-        for (auto& node : row) {
-            node.distance = numeric_limits<int>::max();
-            node.previous = nullptr;
+    for (int i = 0; i < graph.size(); ++i) {
+        for (int j = 0; j < graph[i].size(); ++j) {
+            graph[i][j].distance = numeric_limits<int>::max();
+            graph[i][j].previous = nullptr;
         }
     }
 }
 
+// Creating Bidirectional Edges between two nodes
 void addEdge(Node* node1, Node* node2) {
     node1->neighbors.push_back(node2);
     node2->neighbors.push_back(node1);
 }
 
+
 void buildGraph() {
-    for (int i = 0; i < gridSizeX; ++i) {
-        for (int j = 0; j < gridSizeY; ++j) {
+    //We use this loop to make the graph.
+    for (int i = 0; i < gridSizeX; i++) {
+        for (int j = 0; j < gridSizeY; j++) {
             graph[i][j] = Node(i, j, EMPTY);
         }
     }
 
-    for (int i = 0; i < gridSizeX; ++i) {
-        for (int j = 0; j < gridSizeY; ++j) {
-            if (i > 0) addEdge(&graph[i][j], &graph[i - 1][j]); // Left neighbor
-            if (i < gridSizeX - 1) addEdge(&graph[i][j], &graph[i + 1][j]); // Right neighbor
-            if (j > 0) addEdge(&graph[i][j], &graph[i][j - 1]); // Up neighbor
-            if (j < gridSizeY - 1) addEdge(&graph[i][j], &graph[i][j + 1]); // Down neighbor
+    // We use this loop to connect the edges to each cell/ block in grid. 
+    // The if statements are used so the nodes at boundaries dont get unecessary neighbors i.e no left edge for nodes in the left column.
+    for (int i = 0; i < gridSizeX; i++) {
+        for (int j = 0; j < gridSizeY; j++) {
+            if (i > 0)
+            {
+                addEdge(&graph[i][j], &graph[i - 1][j]); // Left neighbor
+            }
+            if (i < gridSizeX - 1)
+            {
+                addEdge(&graph[i][j], &graph[i + 1][j]); // Right neighbor
+            }
+            if (j > 0)
+            {
+                addEdge(&graph[i][j], &graph[i][j - 1]); // Up neighbor
+            }
+            if (j < gridSizeY - 1)
+            {
+                addEdge(&graph[i][j], &graph[i][j + 1]); // Down neighbor
+            }
         }
     }
 }
 
+
+// This function is used to generate a random maze pattern everytime.
 void generateMaze() {
     for (int i = 0; i < gridSizeX; i += 2) {
         for (int j = 0; j < gridSizeY; j += 2) {
             graph[i][j].type = OBSTACLE;
 
             int randomNeighbor = rand() % 4;
+            // A random number is generated and passed into the switch statement.
             switch (randomNeighbor) {
+
+                // If Condition checks valid boundaries, preventing out-of-bounds access when setting neighboring cells as maze obstacles.
             case 0: // Up
                 if (j > 0) graph[i][j - 1].type = OBSTACLE;
                 break;
@@ -176,15 +210,18 @@ void generateMaze() {
 
 bool isUnreachable(Node* start, Node* end) {
     Queue q;
+    // Add start node in queue.
     q.enqueue(start);
 
+    // Set the distance of start node to 0. 
     start->distance = 0;
 
     while (!q.empty()) {
         Node* current = q.front();
         q.dequeue();
 
-        for (Node* neighbor : current->neighbors) {
+        for (int i = 0; i < current->neighbors.size(); i++) {
+            Node* neighbor = current->neighbors[i];
             if (neighbor->type != OBSTACLE && neighbor->distance == numeric_limits<int>::max()) {
                 neighbor->distance = current->distance + 1;
                 q.enqueue(neighbor);
@@ -196,6 +233,7 @@ bool isUnreachable(Node* start, Node* end) {
                 }
             }
         }
+
     }
 
     clearDistances();
@@ -243,43 +281,51 @@ void findShortestPath() {
     }
 
     clearDistances();
-}void updateButtonSelection(float mouseX, float mouseY, Button& button) {
-    button.setSelected(button.isClicked(mouseX, mouseY));
 }
+
+
 // SFML window and event handling
 int main() {
 
+    // Creating the window
+    RenderWindow window(VideoMode(windowWidth, windowHeight), "Maze Shortest Route", Style::Fullscreen);
 
-    RenderWindow window(VideoMode(windowWidth, windowHeight), "Square Grid", Style::Fullscreen);
 
-
+    // Loading the fonts
     if (!font.loadFromFile("arial.ttf")) {
         cerr << "Failed to load font file." << endl;
         return 1;
     }
 
+
+    // Size of blocks 30x30 pixels
     const float blockSizeX = 30;
     const float blockSizeY = 30;
 
+    // Build the Graph
     buildGraph();
 
+    // Handle states of grid
     bool addingStart = false;
     bool addingEnd = false;
     bool addingObstacle = false;
 
+
+    // Adding the buttons to interact with.
     Button startButton(50, 150, 150, 50, Color(184, 189, 181), "Start");
     Button endButton(50, 250, 150, 50, Color(184, 189, 181), "End");
     Button findPathButton(50, 350, 150, 50, Color(184, 189, 181), "Find Path");
     Button mazeButton(50, 450, 250, 50, Color(184, 189, 181), "Generate Maze");
     Button exitButton(50, 550, 150, 50, Color(184, 189, 181), "Exit");
 
+    // Handle the events when window is opened.
     while (window.isOpen()) {
-        sf::Event event;
+        Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
+            if (event.type == Event::Closed)
                 window.close();
 
-            if (event.type == sf::Event::MouseButtonPressed) {
+            if (event.type == Event::MouseButtonPressed) {
                 float mouseX = static_cast<float>(event.mouseButton.x);
                 float mouseY = static_cast<float>(event.mouseButton.y);
                 // Check if the mouse click is on any button
@@ -288,6 +334,7 @@ int main() {
                 updateButtonSelection(mouseX, mouseY, findPathButton);
                 updateButtonSelection(mouseX, mouseY, mazeButton);
                 updateButtonSelection(mouseX, mouseY, exitButton);
+
                 if (startButton.isClicked(mouseX, mouseY)) {
                     addingStart = true;
                     addingEnd = false;
@@ -316,15 +363,21 @@ int main() {
                 }
             }
 
-            if (event.type == sf::Event::MouseButtonPressed) {
+            //Checks and handles the mouse clicks.
+            if (event.type == Event::MouseButtonPressed) {
+
+                //Get mouse click location/ coordinates.
                 float mouseX = static_cast<float>(event.mouseButton.x);
                 float mouseY = static_cast<float>(event.mouseButton.y);
 
-                for (int i = 0; i < gridSizeX; ++i) {
-                    for (int j = 0; j < gridSizeY; ++j) {
+                for (int i = 0; i < gridSizeX; i++) {
+                    for (int j = 0; j < gridSizeY; j++) {
                         FloatRect blockBounds(350 + i * blockSizeX, 50 + j * blockSizeY, blockSizeX, blockSizeY);
                         if (blockBounds.contains(mouseX, mouseY)) {
-                            if (event.mouseButton.button == sf::Mouse::Left) {
+
+                            // These lines check if start node , end node and obstacles are already present or not.
+                            // If not then allow user to add.
+                            if (event.mouseButton.button == Mouse::Left) {
                                 if (addingStart && !startNode) {
                                     startNode = &graph[i][j];
                                     startNode->type = START;
@@ -358,8 +411,8 @@ int main() {
         window.draw(exitButton.text);
 
         // Draw the grid with updated colors
-        for (int i = 0; i < gridSizeX; ++i) {
-            for (int j = 0; j < gridSizeY; ++j) {
+        for (int i = 0; i < gridSizeX; i++) {
+            for (int j = 0; j < gridSizeY; j++) {
                 RectangleShape block(Vector2f(blockSizeX, blockSizeY));
                 block.setPosition(350 + i * blockSizeX, 50 + j * blockSizeY);
                 block.setOutlineColor(Color::Black);
