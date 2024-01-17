@@ -4,11 +4,38 @@
 using namespace sf;
 using namespace std;
 
-// User-defined simple queue
-template <typename T>
+enum NodeType {
+    EMPTY,
+    OBSTACLE,
+    START,
+    END,
+    PATH
+};
+
+class Node {
+public:
+    int x;
+    int y;
+    NodeType type;
+    vector<Node*> neighbors;
+    Node* previous;
+    int distance;
+
+
+    Node(int X, int Y, NodeType Type)
+    {
+        x = X;
+        y = X;
+        type = Type;
+        previous = nullptr;
+        distance = numeric_limits<int>::max();
+    }
+};
+
+
 class Queue {
 public:
-    void enqueue(const T& value) {
+    void enqueue(Node* value) {
         elements.push_back(value);
     }
 
@@ -18,12 +45,12 @@ public:
         }
     }
 
-    T front() const {
+    Node* front() const {
         if (!empty()) {
             return elements[0];
         }
-        // Return a default value or throw an exception for an empty queue
-        return T();
+        // Return nullptr or throw an exception for an empty queue
+        return nullptr;
     }
 
     bool empty() const {
@@ -35,7 +62,7 @@ public:
     }
 
 private:
-    vector<T> elements;
+    vector<Node*> elements;
 };
 
 Font font;
@@ -47,7 +74,7 @@ public:
     Color originalColor;
 
     Button(float x, float y, float width, float height, Color color, const string& buttonText)
-        : shape(Vector2f(width, height)), text(), selected(false) ,originalColor(color) {
+        : shape(Vector2f(width, height)), text(), selected(false), originalColor(color) {
         shape.setPosition(x, y);
         shape.setFillColor(color);
         shape.setOutlineColor(Color::Black);
@@ -85,24 +112,7 @@ const int gridSizeY = 22;
 const int windowWidth = 1366;
 const int windowHeight = 768;
 
-enum NodeType {
-    EMPTY,
-    OBSTACLE,
-    START,
-    END,
-    PATH
-};
 
-struct Node {
-    int x;
-    int y;
-    NodeType type;
-    vector<Node*> neighbors;
-    Node* previous;
-    int distance;
-
-    Node(int x, int y, NodeType type) : x(x), y(y), type(type), previous(nullptr), distance(numeric_limits<int>::max()) {}
-};
 
 vector<vector<Node>> graph(gridSizeX, vector<Node>(gridSizeY, Node(0, 0, EMPTY)));
 
@@ -165,7 +175,7 @@ void generateMaze() {
 }
 
 bool isUnreachable(Node* start, Node* end) {
-    Queue<Node*> q;
+    Queue q;
     q.enqueue(start);
 
     start->distance = 0;
@@ -203,7 +213,7 @@ void findShortestPath() {
         return;
     }
 
-    Queue<Node*> q;
+    Queue q;
     q.enqueue(startNode);
 
     startNode->distance = 0;
@@ -233,8 +243,7 @@ void findShortestPath() {
     }
 
     clearDistances();
-}
-void updateButtonSelection(float mouseX, float mouseY, Button& button) {
+}void updateButtonSelection(float mouseX, float mouseY, Button& button) {
     button.setSelected(button.isClicked(mouseX, mouseY));
 }
 // SFML window and event handling
@@ -273,7 +282,7 @@ int main() {
             if (event.type == sf::Event::MouseButtonPressed) {
                 float mouseX = static_cast<float>(event.mouseButton.x);
                 float mouseY = static_cast<float>(event.mouseButton.y);
-                        // Check if the mouse click is on any button
+                // Check if the mouse click is on any button
                 updateButtonSelection(mouseX, mouseY, startButton);
                 updateButtonSelection(mouseX, mouseY, endButton);
                 updateButtonSelection(mouseX, mouseY, findPathButton);
@@ -373,7 +382,7 @@ int main() {
                     blockColor = Color(248, 255, 28); // Color for the path
                     break;
                 default:
-                    blockColor = Color::White; // Default color
+                    blockColor = Color(184, 189, 181); // Default color
                     break;
                 }
                 block.setFillColor(blockColor);
@@ -383,7 +392,7 @@ int main() {
 
         window.display();
     }
-   
+
 
     return 0;
 }
